@@ -24,8 +24,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupStatusItem()
         setupShakeDetector()
         
-        // Hide dock icon
-        NSApp.setActivationPolicy(.accessory)
+        // Show dock icon
+        NSApp.setActivationPolicy(.regular)
     }
     
     func setupStatusItem() {

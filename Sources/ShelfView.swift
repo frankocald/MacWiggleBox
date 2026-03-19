@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import QuickLookThumbnailing
 
 public struct ShelfView: View {
     @ObservedObject var viewModel: ShelfViewModel
@@ -57,12 +58,21 @@ public struct ShelfView: View {
 
 struct FileItemView: View {
     let url: URL
+    @State private var thumbnail: NSImage?
     
     var body: some View {
         VStack {
-            Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
-                .resizable()
-                .frame(width: 48, height: 48)
+            if let image = thumbnail {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 48, height: 48)
+            } else {
+                Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
+                    .resizable()
+                    .frame(width: 48, height: 48)
+            }
+            
             Text(url.lastPathComponent)
                 .font(.caption)
                 .lineLimit(1)
@@ -71,6 +81,22 @@ struct FileItemView: View {
         .padding(8)
         .background(Color.white.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 8))
+        .task {
+            await generateThumbnail()
+        }
+    }
+    
+    @MainActor
+    private func generateThumbnail() async {
+        let size = CGSize(width: 128, height: 128)
+        let request = QLThumbnailGenerator.Request(fileAt: url, size: size, scale: NSScreen.main?.backingScaleFactor ?? 2.0, representationTypes: .thumbnail)
+        
+        do {
+            let result = try await QLThumbnailGenerator.shared.generateBestRepresentation(for: request)
+            self.thumbnail = result.nsImage
+        } catch {
+            print("Error generating thumbnail for \(url): \(error)")
+        }
     }
 }
 

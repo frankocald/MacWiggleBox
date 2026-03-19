@@ -14,7 +14,7 @@ public class ShelfWindow: NSPanel {
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         self.backgroundColor = .clear
         self.hasShadow = true
-        self.isMovableByWindowBackground = true
+        self.isMovableByWindowBackground = false
         
         let contentView = NSHostingView(rootView: ShelfView(viewModel: viewModel))
         self.contentView = contentView
