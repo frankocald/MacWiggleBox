@@ -22,6 +22,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
+        checkPermissions()
         setupShakeDetector()
         
         // Show dock icon
@@ -44,6 +45,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Handle click if needed
     }
     
+    nonisolated func checkPermissions() {
+        let options: NSDictionary = ["AXTrustedCheckOptionPrompt": true]
+        let accessEnabled = AXIsProcessTrustedWithOptions(options)
+        
+        if !accessEnabled {
+            print("WARNING: Accessibility permissions are not enabled. Please enable them in System Settings > Privacy & Security > Accessibility.")
+            Task { @MainActor in
+                let alert = NSAlert()
+                alert.messageText = "Accessibility Permissions Required"
+                alert.informativeText = "MacWiggleBox requires Accessibility permissions to detect mouse shakes while dragging files. Please grant permission in System Settings."
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: "Open System Settings")
+                alert.addButton(withTitle: "Quit")
+                
+                let response = alert.runModal()
+                if response == .alertFirstButtonReturn {
+                    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+                } else {
+                    NSApplication.shared.terminate(nil)
+                }
+            }
+        }
+    }
+    
     func setupShakeDetector() {
         detector.onShakeDetected = { [weak self] in
             DispatchQueue.main.async {
@@ -51,20 +76,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         
-        // Start a high-frequency timer to poll mouse location.
-        // This is necessary because both NSEvent monitors and CGEvents 
-        // can be blocked or require strict permissions during drag operations.
-        // NSEvent.mouseLocation always works.
-        let timer = Timer(timeInterval: 1.0 / 60.0, target: self, selector: #selector(pollMouseLocation), userInfo: nil, repeats: true)
-        RunLoop.main.add(timer, forMode: .common)
-    }
-    
-    @objc func pollMouseLocation() {
-        let loc = NSEvent.mouseLocation
-        detector.update(with: loc)
-    }
+        // Start CGEvent tap for reliable mouse tracking during drag operations
+        let eventMask = (1 << CGEventType.leftMouseDragged.rawValue) | (1 << CGEventType.rightMouseDragged.rawValue) | (1 << CGEventType.mouseMoved.rawValue)
         
-    
+        guard let eventTap = CGEvent.tapCreate(
+            tap: .cghidEventTap,
+            place: .headInsertEventTap,
+            options: .listenOnly,
+            eventsOfInterest: CGEventMask(eventMask),
+            callback: { (proxy, type, event, refcon) -> Unmanaged<CGEvent>? in
+                if let refcon = refcon {
+                    let detector = Unmanaged<ShakeDetector>.fromOpaque(refcon).takeUnretainedValue()
+                    let loc = event.location
+                    detector.update(with: loc)
+                }
+                return Unmanaged.passUnretained(event)
+            },
+            userInfo: UnsafeMutableRawPointer(Unmanaged.passUnretained(detector).toOpaque())
+        ) else {
+            print("Failed to create event tap. Make sure the app has Accessibility permissions.")
+            return
+        }
+        
+        let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
+        CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
+        CGEvent.tapEnable(tap: eventTap, enable: true)
+    }
+
     @MainActor
     func showShelf() {
         if shelfWindow == nil {

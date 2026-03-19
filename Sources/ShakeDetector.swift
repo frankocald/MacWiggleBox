@@ -14,6 +14,8 @@ public class ShakeDetector {
         let now = Date()
         points.append((point, now))
         
+        print("ShakeDetector: updating with point \(point), points count: \(points.count)")
+        
         // Remove old points
         points = points.filter { now.timeIntervalSince($0.time) < timeWindow }
         if points.count > maxPoints {
@@ -27,7 +29,10 @@ public class ShakeDetector {
     }
     
     private func isShake() -> Bool {
-        guard points.count >= 4 else { return false }
+        guard points.count >= 4 else { 
+            print("ShakeDetector: not enough points (\(points.count))")
+            return false 
+        }
         
         var directionChanges = 0
         var lastDirection: CGFloat = 0 // 1 for right, -1 for left
@@ -43,6 +48,7 @@ public class ShakeDetector {
             }
         }
         
+        print("ShakeDetector: direction changes = \(directionChanges)")
         return directionChanges >= shakeThreshold
     }
 }
