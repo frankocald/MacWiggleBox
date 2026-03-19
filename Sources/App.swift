@@ -51,17 +51,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         
-        // Monitor global mouse moves while left button is down (dragging)
-        monitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDragged]) { [weak self] event in
-            self?.detector.update(with: event.locationInWindow)
+        // Start CGEvent tap for reliable mouse tracking during drag operations
+        let eventMask = (1 << CGEventType.leftMouseDragged.rawValue) | (1 << CGEventType.rightMouseDragged.rawValue) | (1 << CGEventType.mouseMoved.rawValue)
+        
+        guard let eventTap = CGEvent.tapCreate(
+            tap: .cghidEventTap,
+            place: .headInsertEventTap,
+            options: .listenOnly,
+            eventsOfInterest: CGEventMask(eventMask),
+            callback: { (proxy, type, event, refcon) -> Unmanaged<CGEvent>? in
+                if let refcon = refcon {
+                    let detector = Unmanaged<ShakeDetector>.fromOpaque(refcon).takeUnretainedValue()
+                    let loc = event.location
+                    detector.update(with: loc)
+                }
+                return Unmanaged.passUnretained(event)
+            },
+            userInfo: UnsafeMutableRawPointer(Unmanaged.passUnretained(detector).toOpaque())
+        ) else {
+            print("Failed to create event tap. Make sure the app has Accessibility permissions.")
+            return
         }
         
-        // Also monitor local events just in case
-        NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDragged]) { [weak self] event in
-            self?.detector.update(with: event.locationInWindow)
-            return event
-        }
+        let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
+        CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
+        CGEvent.tapEnable(tap: eventTap, enable: true)
     }
+        
     
     @MainActor
     func showShelf() {
