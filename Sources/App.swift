@@ -50,11 +50,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let accessEnabled = AXIsProcessTrustedWithOptions(options)
         
         if !accessEnabled {
-            print("WARNING: Accessibility permissions are not enabled. Please enable them in System Settings > Privacy & Security > Accessibility.")
+            print("WARNING: Accessibility permissions are not enabled.")
             Task { @MainActor in
                 let alert = NSAlert()
                 alert.messageText = "Accessibility Permissions Required"
-                alert.informativeText = "MacWiggleBox requires Accessibility permissions to detect mouse shakes while dragging files. Please grant permission in System Settings."
+                alert.informativeText = "MacWiggleBox requires Accessibility permissions to detect mouse shakes while dragging files."
                 alert.alertStyle = .warning
                 alert.addButton(withTitle: "Open System Settings")
                 alert.addButton(withTitle: "Quit")
@@ -70,37 +70,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func setupShakeDetector() {
+        print("DEBUG: Setting up shake detector...")
         detector.onShakeDetected = { [weak self] in
+            print("DEBUG: AppDelegate: Shake DETECTED!")
             DispatchQueue.main.async {
                 self?.showShelf()
             }
         }
         
-        // Start CGEvent tap for reliable mouse tracking during drag operations
-        let eventMask = (1 << CGEventType.leftMouseDragged.rawValue) | (1 << CGEventType.rightMouseDragged.rawValue) | (1 << CGEventType.mouseMoved.rawValue)
+        let mask: NSEvent.EventTypeMask = [.leftMouseDragged, .mouseMoved]
         
-        guard let eventTap = CGEvent.tapCreate(
-            tap: .cghidEventTap,
-            place: .headInsertEventTap,
-            options: .listenOnly,
-            eventsOfInterest: CGEventMask(eventMask),
-            callback: { (proxy, type, event, refcon) -> Unmanaged<CGEvent>? in
-                if let refcon = refcon {
-                    let detector = Unmanaged<ShakeDetector>.fromOpaque(refcon).takeUnretainedValue()
-                    let loc = event.location
-                    detector.update(with: loc)
-                }
-                return Unmanaged.passUnretained(event)
-            },
-            userInfo: UnsafeMutableRawPointer(Unmanaged.passUnretained(detector).toOpaque())
-        ) else {
-            print("Failed to create event tap. Make sure the app has Accessibility permissions.")
-            return
+        NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] event in
+            let loc = NSEvent.mouseLocation
+            print("DEBUG GLOBAL: type=\(event.type.rawValue) loc=\(loc)")
+            self?.detector.update(with: loc)
         }
         
-        let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
-        CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
-        CGEvent.tapEnable(tap: eventTap, enable: true)
+        NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
+            let loc = NSEvent.mouseLocation
+            print("DEBUG LOCAL: type=\(event.type.rawValue) loc=\(loc)")
+            self?.detector.update(with: loc)
+            return event
+        }
     }
 
     @MainActor
@@ -110,9 +101,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         let mouseLocation = NSEvent.mouseLocation
+        print("DEBUG: Showing shelf at \(mouseLocation)")
         shelfWindow?.show(at: mouseLocation)
-        
-        // Give it focus for a moment to ensure it's on top
         shelfWindow?.makeKey()
     }
 }

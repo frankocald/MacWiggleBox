@@ -4,9 +4,9 @@ public class ShakeDetector {
     public var onShakeDetected: (() -> Void)?
     
     private var points: [(point: CGPoint, time: Date)] = []
-    private let maxPoints = 10
-    private let shakeThreshold = 3 // Number of direction reversals
-    private let timeWindow: TimeInterval = 0.5 // Window to consider for a shake
+    private let maxPoints = 50 
+    private let shakeThreshold = 3 
+    private let timeWindow: TimeInterval = 0.8 
     
     public init() {}
     
@@ -14,9 +14,6 @@ public class ShakeDetector {
         let now = Date()
         points.append((point, now))
         
-        print("ShakeDetector: updating with point \(point), points count: \(points.count)")
-        
-        // Remove old points
         points = points.filter { now.timeIntervalSince($0.time) < timeWindow }
         if points.count > maxPoints {
             points.removeFirst()
@@ -29,17 +26,14 @@ public class ShakeDetector {
     }
     
     private func isShake() -> Bool {
-        guard points.count >= 4 else { 
-            print("ShakeDetector: not enough points (\(points.count))")
-            return false 
-        }
+        guard points.count >= 4 else { return false }
         
         var directionChanges = 0
-        var lastDirection: CGFloat = 0 // 1 for right, -1 for left
+        var lastDirection: CGFloat = 0 
         
         for i in 1..<points.count {
             let dx = points[i].point.x - points[i-1].point.x
-            if abs(dx) > 5 { // Minimum movement threshold
+            if abs(dx) > 2 { 
                 let currentDirection = dx > 0 ? 1.0 : -1.0
                 if lastDirection != 0 && currentDirection != lastDirection {
                     directionChanges += 1
@@ -48,7 +42,11 @@ public class ShakeDetector {
             }
         }
         
-        print("ShakeDetector: direction changes = \(directionChanges)")
-        return directionChanges >= shakeThreshold
+        let minX = points.map { $0.point.x }.min() ?? 0
+        let maxX = points.map { $0.point.x }.max() ?? 0
+        let totalSpan = maxX - minX
+        
+        // Reduced span to 10 pixels
+        return directionChanges >= shakeThreshold && totalSpan > 10
     }
 }
