@@ -78,11 +78,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let mask: NSEvent.EventTypeMask = [.leftMouseDragged, .mouseMoved]
         
         NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] event in
-            self?.detector.update(with: NSEvent.mouseLocation)
+            // Only update if a mouse button is pressed (dragging)
+            if NSEvent.pressedMouseButtons != 0 {
+                self?.detector.update(with: NSEvent.mouseLocation)
+            }
         }
         
         NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
-            self?.detector.update(with: NSEvent.mouseLocation)
+            if NSEvent.pressedMouseButtons != 0 {
+                self?.detector.update(with: NSEvent.mouseLocation)
+            }
             return event
         }
     }
