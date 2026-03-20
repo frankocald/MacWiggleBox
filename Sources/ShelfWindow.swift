@@ -3,7 +3,9 @@ import SwiftUI
 
 public class ShelfWindow: NSPanel {
     public init(viewModel: ShelfViewModel) {
-        let styleMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .nonactivatingPanel, .fullSizeContentView, .borderless]
+        // Remove .borderless for .titled to work. 
+        // Remove .nonactivatingPanel to allow standard controls to behave normally.
+        let styleMask: NSWindow.StyleMask = [.titled, .closable, .miniaturizable, .fullSizeContentView, .utilityWindow, .hudWindow]
         super.init(contentRect: NSRect(x: 0, y: 0, width: 300, height: 200),
                    styleMask: styleMask,
                    backing: .buffered,
@@ -14,12 +16,13 @@ public class ShelfWindow: NSPanel {
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         self.backgroundColor = .clear
         self.hasShadow = true
-        self.isMovableByWindowBackground = false
         
-        // Add window controls but keep title bar transparent
+        // Allow dragging from the background (very important for borderless-look windows)
+        self.isMovableByWindowBackground = true
+        
+        // Hide title bar but keep controls
         self.titleVisibility = .hidden
         self.titlebarAppearsTransparent = true
-        self.isMovable = true // Allow moving since we have a title bar area now
         
         let contentView = NSHostingView(rootView: ShelfView(viewModel: viewModel))
         self.contentView = contentView

@@ -95,7 +95,7 @@ struct FileItemView: View {
             let result = try await QLThumbnailGenerator.shared.generateBestRepresentation(for: request)
             self.thumbnail = result.nsImage
         } catch {
-            print("Error generating thumbnail for \(url): \(error)")
+            // Silently fallback to system icon (already handled in body)
         }
     }
 }
