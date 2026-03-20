@@ -10,7 +10,7 @@ public struct ShelfView: View {
     }
     
     public var body: some View {
-        ZStack {
+        ZStack(alignment: .topTrailing) {
             VisualEffectView(material: .hudWindow, blendingMode: .withinWindow)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             
@@ -35,9 +35,27 @@ public struct ShelfView: View {
                                     }
                             }
                         }
-                        .padding()
+                        .padding(.top, 40) // Make room for the clear button
+                        .padding(.horizontal)
+                        .padding(.bottom)
                     }
                 }
+            }
+            
+            if !viewModel.files.isEmpty {
+                Button(action: {
+                    viewModel.clear()
+                }) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 14, weight: .medium))
+                        .padding(8)
+                        .background(Color.white.opacity(0.1))
+                        .clipShape(Circle())
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .padding(12)
+                .help("Clear all files")
             }
         }
         .frame(minWidth: 200, minHeight: 150)
