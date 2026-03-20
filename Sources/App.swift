@@ -50,7 +50,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let accessEnabled = AXIsProcessTrustedWithOptions(options)
         
         if !accessEnabled {
-            print("WARNING: Accessibility permissions are not enabled.")
             Task { @MainActor in
                 let alert = NSAlert()
                 alert.messageText = "Accessibility Permissions Required"
@@ -70,9 +69,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func setupShakeDetector() {
-        print("DEBUG: Setting up shake detector...")
         detector.onShakeDetected = { [weak self] in
-            print("DEBUG: AppDelegate: Shake DETECTED!")
             DispatchQueue.main.async {
                 self?.showShelf()
             }
@@ -81,15 +78,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let mask: NSEvent.EventTypeMask = [.leftMouseDragged, .mouseMoved]
         
         NSEvent.addGlobalMonitorForEvents(matching: mask) { [weak self] event in
-            let loc = NSEvent.mouseLocation
-            print("DEBUG GLOBAL: type=\(event.type.rawValue) loc=\(loc)")
-            self?.detector.update(with: loc)
+            self?.detector.update(with: NSEvent.mouseLocation)
         }
         
         NSEvent.addLocalMonitorForEvents(matching: mask) { [weak self] event in
-            let loc = NSEvent.mouseLocation
-            print("DEBUG LOCAL: type=\(event.type.rawValue) loc=\(loc)")
-            self?.detector.update(with: loc)
+            self?.detector.update(with: NSEvent.mouseLocation)
             return event
         }
     }
@@ -101,8 +94,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         let mouseLocation = NSEvent.mouseLocation
-        print("DEBUG: Showing shelf at \(mouseLocation)")
         shelfWindow?.show(at: mouseLocation)
-        shelfWindow?.makeKey()
+        
+        // Ensure the app becomes active to show the window on top
+        NSApp.activate(ignoringOtherApps: true)
     }
 }

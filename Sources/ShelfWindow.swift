@@ -10,7 +10,8 @@ public class ShelfWindow: NSPanel {
                    defer: false)
         
         self.isFloatingPanel = true
-        self.level = .floating
+        // Use a much higher level to stay on top of other apps during drags
+        self.level = .statusBar 
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         self.backgroundColor = .clear
         self.hasShadow = true
@@ -21,7 +22,13 @@ public class ShelfWindow: NSPanel {
     }
     
     public func show(at point: NSPoint) {
-        self.setFrameOrigin(point)
+        // Center the window on the cursor
+        let width: CGFloat = 300
+        let height: CGFloat = 200
+        let origin = NSPoint(x: point.x - width / 2, y: point.y - height / 2)
+        
+        self.setFrameOrigin(origin)
         self.makeKeyAndOrderFront(nil)
+        self.orderFrontRegardless()
     }
 }

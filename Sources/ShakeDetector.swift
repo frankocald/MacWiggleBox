@@ -33,7 +33,7 @@ public class ShakeDetector {
         
         for i in 1..<points.count {
             let dx = points[i].point.x - points[i-1].point.x
-            if abs(dx) > 2 { 
+            if abs(dx) > 1 { 
                 let currentDirection = dx > 0 ? 1.0 : -1.0
                 if lastDirection != 0 && currentDirection != lastDirection {
                     directionChanges += 1
@@ -46,7 +46,6 @@ public class ShakeDetector {
         let maxX = points.map { $0.point.x }.max() ?? 0
         let totalSpan = maxX - minX
         
-        // Reduced span to 10 pixels
         return directionChanges >= shakeThreshold && totalSpan > 10
     }
 }
