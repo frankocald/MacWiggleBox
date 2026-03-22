@@ -3,7 +3,7 @@
 # Exit on error
 set -e
 
-SOURCE_IMAGE="/Users/frankcaldwell/.gemini/antigravity/brain/d7689336-5539-43a6-a47c-e39922cb3860/uploaded_media_1774219800264.png"
+SOURCE_IMAGE="/Users/frankcaldwell/.gemini/antigravity/brain/d7689336-5539-43a6-a47c-e39922cb3860/uploaded_media_1774219884630.png"
 ICONSET_DIR="Resources/AppIcon.iconset"
 
 echo "Creating iconset directory..."
