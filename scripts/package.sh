@@ -20,8 +20,10 @@ echo "Copying binary and Info.plist..."
 cp "${BUILD_DIR}/${APP_NAME}" "${APP_BUNDLE}/Contents/MacOS/"
 cp "Resources/Info.plist" "${APP_BUNDLE}/Contents/"
 
-# If we have an icon, we'd copy it here
-# cp "Resources/AppIcon.icns" "${APP_BUNDLE}/Contents/Resources/"
+echo "Copying resources..."
+if [ -f "Resources/AppIcon.icns" ]; then
+    cp "Resources/AppIcon.icns" "${APP_BUNDLE}/Contents/Resources/"
+fi
 
 echo "Successfully created ${APP_BUNDLE}!"
 echo "You can now move ${APP_BUNDLE} to your /Applications folder."
